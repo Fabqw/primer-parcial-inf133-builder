@@ -4,16 +4,7 @@ import json
 from urllib.parse import urlparse, parse_qs
 
 
-characters = {
-    {
-       "name": "Gandalf",
-       "level": 10,
-       "role": "Wizard",
-       "charisma": 15,
-       "strength": 10,
-       "dexterity": 10 
-    },
-}
+characters = {}
 
 
 class Character:
@@ -73,12 +64,12 @@ class Game:
 
 
 class CharacterService:
+
     def __init__(self):
         self.builder = CharacterBuilder()
         self.game = Game(self.builder)
         self.characters = characters
         
-    @staticmethod
     def create_character(self, post_data):
         name = post_data.get('name', None)
         level = post_data.get('level', None)
@@ -89,46 +80,29 @@ class CharacterService:
 
         character = self.game.create_character(name, level, role, charisma, strength, dexterity)
 
-        id_character_nuevo = max(characters.keys()) + 1 if characters else 1
-        characters[id_character_nuevo] = character
-        
+        id_character_nuevo = max(self.characters.keys(), default=0) + 1
+        self.characters[id_character_nuevo] = character 
+
         return character
-    
-    @staticmethod
-    def read_characters(self):
-        return characters
 
-    @staticmethod
+    
+    def list_characters(self):
+        return self.characters
+
     def read_character_id(self, id):
-        for character in characters.items():
-            if character["id"] == id:
-                return character
+        return self.characters.get(id, None)
+    
+    def read_character_role(self, role):
+        return {id_character: character for id_character, character in self.characters.items() if character.role == role}
+
+    def update_character(self, id_character, data): 
+        if id_character in characters.items():
+            return self.characters.update(data)
         return None
     
-    @staticmethod
-    def character_role(role):
-        return {id_character: character for id_character, character in characters.items() if character["rol"] == rol} 
-
-    @staticmethod
-    def read_character_level(self, level):
-        return {id_character: character for id_character, character in characters.items() if character["level"] == level} 
-
-    @staticmethod
-    def read_character_charisma(self, charisma):
-        return {id_character: character for id_character, character in characters.items() if character["charisma"] == charisma} 
-
-    @staticmethod
-    def update_character(id_character, data):         
-        if id_character in characters:
-            characters[id_character].update(data)
-            return animales
-        return None
-    
-    @staticmethod
-    def delete_character(id_character):
-        if id_character in characters:
-            characters.pop(id_character)
-            return animales
+    def delete_character(self, id_character):
+        if id_character in self.characters:
+            return self.characters.pop(id_character, None)
         return None
 
 class HTTPDataHandler:
@@ -165,21 +139,21 @@ class CharacterHandler(BaseHTTPRequestHandler):
         query_params = parse_qs(parsed_url.query)
         
         if self.path == "/characters":
-            response_data = self.controller.read_characteres()
-            HTTPDataHandler.handle_response(self, 200, response_data)
+            response = self.controller.list_characters().__dict__
+            HTTPDataHandler.handle_response(self, 200, response)
         
-        elif self.path.startswith("/charactrs") and "role" in query_params:            
+        elif self.path.startswith("/characters") and "role" in query_params:            
             role = query_params["role"][0]
             character_roles = self.controller.read_character_role(role)     
 
-            if characteres_roles:
+            if character_roles:
                 HTTPDataHandler.handle_response(self, 200, character_roles)
             else:
                 HTTPDataHandler.handle_response(self, 204, [])            
         
         elif self.path.startswith("/characters/"):            
             index = int(self.path.split("/")[-1])
-            response_data = self.controller.read_character_id(index)
+            response_data = self.controller.read_character_id(index).__dict__
             HTTPDataHandler.handle_response(self, 200, response_data)
         
         else:
@@ -190,11 +164,11 @@ class CharacterHandler(BaseHTTPRequestHandler):
         if self.path.startswith("/characters/"):
             index = int(self.path.split("/")[2])
             data = HTTPDataHandler.handle_reader(self)
-            update_character = self.controller.update_character(index, data)
-            if update_character:
-                HTTPDataHandler.handle_response(self, 200, response_data)
+            updated_character = self.controller.update_character(index, data)
+            if updated_character:
+                HTTPDataHandler.handle_response(self, 200, updated_character.__dict__)
             else:
-                HTTPDataHandler.handle_response(self, 404, {"Error": "Índice de character no válido"})
+                HTTPDataHandler.handle_response(self, 404, {"Error": "Índice de personaje no válido"})
         else:
             HTTPDataHandler.handle_response(self, 404, {"Error": "Ruta no existente"})
 
@@ -204,12 +178,11 @@ class CharacterHandler(BaseHTTPRequestHandler):
             index = int(self.path.split("/")[2])
             deleted_character = self.controller.delete_character(index)
             if deleted_character:
-                HTTPDataHandler.handle_response(self, 200, {"message": "paciente eliminado correctamente"})
+                HTTPDataHandler.handle_response(self, 200, {"message": "Personaje eliminado correctamente"})
             else:
-                HTTPDataHandler.handle_response(self, 404, {"Error": "Índice de paciente no válido"})
+                HTTPDataHandler.handle_response(self, 404, {"Error": "Índice de personaje no válido"})
         else:
             HTTPDataHandler.handle_response(self, 404, {"Error": "Ruta no existente"})
-
 
 def run(server_class=HTTPServer, handler_class=CharacterHandler, port=8000):
     server_address = ("", port)
