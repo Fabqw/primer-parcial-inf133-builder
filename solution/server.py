@@ -9,7 +9,7 @@ characters = {
        "name": "Gandalf",
        "level": 10,
        "role": "Wizard",
-       "charisma": 15
+       "charisma": 15,
        "strength": 10,
        "dexterity": 10 
     },
